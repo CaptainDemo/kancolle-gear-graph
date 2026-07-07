@@ -1,4 +1,4 @@
-# kancolle_gear_graph
+# kancolle-gear-graph
 
 Interactive KanColle equipment dependency graph — explore how gears, quests, and materials consume each other, recursively.
 
