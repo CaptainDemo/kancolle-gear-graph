@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "start": "node scripts/start.mjs",
     "sync": "node scripts/sync-data.mjs"
   },
   "dependencies": {
