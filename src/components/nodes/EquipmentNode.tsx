@@ -119,7 +119,7 @@ export function EquipmentNode({ id, data }: NodeProps) {
         </button>
       )}
 
-      {(showImproveChip || showEvolveChips) && (
+      {(showImproveChip || showEvolveChips) && d.expandedRight && (
         <div className="self-consume-chips">
           {showImproveChip && (
             <span className="sc-chip improve" title={`改修消耗自身 ${sc!.improve} 份`}>
