@@ -18,10 +18,10 @@ import {
   getSelfConsume,
   getShip,
   getShipsEquippingEquipment,
+  getDevelopResourcePack,
 } from './loader';
 import type { ResourcePack } from '../types/improvement';
-import type { EdgeKind, ResourceKey } from '../lib/constants';
-import { RESOURCE_KEYS } from '../lib/constants';
+import type { EdgeKind } from '../lib/constants';
 
 // ============================================================================
 // 节点数据类型
@@ -68,16 +68,9 @@ export interface ShipNodeData extends BaseNodeData {
 
 export interface PackNodeData extends BaseNodeData {
   kind: 'pack';
-  packKind: 'improve' | 'evolve';
+  packKind: 'improve' | 'evolve' | 'develop';
   ownerId: number;
   stats: ResourcePack;
-  expanded?: boolean;
-}
-
-export interface ResourceNodeData extends BaseNodeData {
-  kind: 'resource';
-  resourceKey: ResourceKey;
-  amount: number;
 }
 
 export interface AggregateNodeData extends BaseNodeData {
@@ -92,7 +85,6 @@ export type GraphNodeData =
   | QuestNodeData
   | ShipNodeData
   | PackNodeData
-  | ResourceNodeData
   | AggregateNodeData;
 
 export type GraphNode = Node<GraphNodeData>;
@@ -124,13 +116,12 @@ const shipInstanceId = (shipId: number, side: 'left' | 'right', parentInstance: 
   `s-${shipId}-${side[0]}-${parentInstance}`;
 const packInstanceId = (
   parentInstance: string,
-  packKind: 'improve' | 'evolve',
+  packKind: 'improve' | 'evolve' | 'develop',
   planIndex?: number,
 ) =>
   planIndex != null
     ? `pack-${packKind}-p${planIndex}-${parentInstance}`
     : `pack-${packKind}-${parentInstance}`;
-const resourceInstanceId = (parentPackId: string, key: ResourceKey) => `${parentPackId}-res-${key}`;
 
 // ============================================================================
 // 构建函数：递归展开
@@ -155,7 +146,6 @@ interface NeighborEntry {
 
 export function buildEquipmentTree(
   centerId: number,
-  expandedPacks: Set<string>,
   expandedNodes: Map<string, ExpandedState>,
   expandedAggregates: Set<string>,
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
@@ -298,7 +288,7 @@ export function buildEquipmentTree(
 
   const addPack = (
     ownerId: number,
-    packKind: 'improve' | 'evolve',
+    packKind: 'improve' | 'evolve' | 'develop',
     parentInstance: string,
     parentLevel: number,
     planIndex?: number,
@@ -306,6 +296,8 @@ export function buildEquipmentTree(
     let stats: ResourcePack | undefined;
     if (packKind === 'improve') {
       stats = getImproveResourcePack(ownerId);
+    } else if (packKind === 'develop') {
+      stats = getDevelopResourcePack(ownerId);
     } else {
       // evolve pack 按 planIndex 索引；planIndex 缺失时不创建
       if (planIndex == null) return null;
@@ -323,35 +315,11 @@ export function buildEquipmentTree(
         packKind,
         ownerId,
         stats,
-        expanded: expandedPacks.has(instanceId),
         parentInstanceId: parentInstance,
         parentSide: 'left',
         level: parentLevel + 1,
       },
     });
-
-    if (expandedPacks.has(instanceId)) {
-      for (const key of RESOURCE_KEYS) {
-        const amount = stats[key];
-        if (amount <= 0) continue;
-        const rid = resourceInstanceId(instanceId, key);
-        if (nodes.has(rid)) continue;
-        nodes.set(rid, {
-          id: rid,
-          type: 'resource',
-          position: { x: 0, y: 0 },
-          data: {
-            kind: 'resource',
-            resourceKey: key,
-            amount,
-            parentInstanceId: instanceId,
-            parentSide: 'left',
-            level: parentLevel + 2,
-          },
-        });
-        addEdge(rid, instanceId, 'PACK_RESOURCE', { label: `×${amount}`, amount });
-      }
-    }
     return instanceId;
   };
 
@@ -457,11 +425,13 @@ export function buildEquipmentTree(
   }
 
   function countLeftNeighbors(equipId: number): number {
-    // 素材包也是 LEFT 子节点，没上游装备但有改修/进化时仍可展开看素材包
+    // 素材包也是 LEFT 子节点，没上游装备但有改修/进化/开发时仍可展开看素材包
     let n = collectLeftNeighbors(equipId).length;
     if (getImproveResourcePack(equipId) != null) n++;
     // 每个 upgrade 方案一个 evolve pack
     n += getEvolveResourcePacksByPlan(equipId).size;
+    // 开发理论值包（仅可开发装备有）
+    if (getDevelopResourcePack(equipId) != null) n++;
     return n;
   }
 
@@ -568,16 +538,22 @@ export function buildEquipmentTree(
       const improvePack = addPack(equipId, 'improve', instanceId, level);
       if (improvePack) addEdge(improvePack, instanceId, 'IMPROVE_PACK', { side: 'left' });
       // 进化素材包（每方案一个，跟随 planIndex 区分）
-      for (const plan of getImprovementPlans(equipId)) {
+      const plans = getImprovementPlans(equipId);
+      const evolveMultiPlan = plans.length > 1;
+      for (const plan of plans) {
         if (!plan.evolvePack) continue;
         const evolvePack = addPack(equipId, 'evolve', instanceId, level, plan.planIndex);
         if (evolvePack) {
           addEdge(evolvePack, instanceId, 'EVOLVE_PACK', {
+            label: evolveMultiPlan ? `进化素材·P${plan.planIndex + 1}` : undefined,
             side: 'left',
             planIndex: plan.planIndex,
           });
         }
       }
+      // 开发理论值包（废弃资源 × 10，对所有装备都可算）
+      const developPack = addPack(equipId, 'develop', instanceId, level);
+      if (developPack) addEdge(developPack, instanceId, 'DEVELOP_PACK', { side: 'left' });
 
       addLeftNeighbors(equipId, instanceId, level, newPath);
     }

@@ -16,6 +16,8 @@ const SOURCES = {
     'https://raw.githubusercontent.com/KC3Kai/KC3Kai/master/src/data/akashi.json',
   'ships.nedb':
     'https://raw.githubusercontent.com/TeamFleet/WhoCallsTheFleet-DB/master/db/ships.nedb',
+  'items.nedb':
+    'https://raw.githubusercontent.com/TeamFleet/WhoCallsTheFleet-DB/master/db/items.nedb',
 };
 
 const QUEST_LIST_API =
@@ -112,6 +114,31 @@ async function transformShips() {
   );
 }
 
+// TeamFleet items.nedb → data/developable.json（craftable 装备 ID 列表）
+async function transformDevelopable() {
+  console.log('=== 转换 items.nedb → developable.json ===');
+  const t0 = performance.now();
+  const raw = await readFile(join(DATA_DIR, 'items.nedb'), 'utf8');
+  const ids = [];
+  for (const line of raw.trim().split('\n')) {
+    if (!line) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (entry?.craftable === true && typeof entry.id === 'number') ids.push(entry.id);
+  }
+  ids.sort((a, b) => a - b);
+  const out = JSON.stringify(ids);
+  await writeFile(join(DATA_DIR, 'developable.json'), out, 'utf8');
+  const dt = Math.round(performance.now() - t0);
+  console.log(
+    `  ok  developable.json      ${formatBytes(out.length).padStart(10)}  ${dt}ms  (${ids.length} craftable)`,
+  );
+}
+
 async function fetchQuestList() {
   console.log('=== 获取任务文件列表 ===');
   const res = await fetch(QUEST_LIST_API, {
@@ -166,6 +193,7 @@ async function main() {
   await mkdir(QUESTS_DIR, { recursive: true });
   await syncMainSources();
   await transformShips();
+  await transformDevelopable();
   const questIds = await fetchQuestList();
   await syncQuests(questIds);
   await bundleQuests(questIds);

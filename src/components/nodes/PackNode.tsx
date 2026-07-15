@@ -6,12 +6,16 @@ import type { ResourceKey } from '../../lib/constants';
 
 const ORDER: ResourceKey[] = ['fuel', 'ammo', 'steel', 'bauxite', 'screw', 'devmat'];
 
+const PACK_META: Record<PackNodeData['packKind'], { label: string; color: string }> = {
+  improve: { label: '改修素材', color: '#90a4ae' },
+  evolve: { label: '进化素材', color: '#78909c' },
+  develop: { label: '开发理论值', color: '#8d6e63' },
+};
+
 export function PackNode({ data }: NodeProps) {
   if (data.kind !== 'pack') return null;
   const d = data as PackNodeData;
-  const isImprove = d.packKind === 'improve';
-  const label = isImprove ? '改修素材' : '进化素材';
-  const color = isImprove ? '#90a4ae' : '#78909c';
+  const meta = PACK_META[d.packKind];
 
   const entries = ORDER.map((k) => ({
     key: k,
@@ -20,32 +24,26 @@ export function PackNode({ data }: NodeProps) {
   })).filter((e) => e.amount > 0);
 
   return (
-    <div
-      className="pack-node"
-      title={`${label}（点击${d.expanded ? '收起' : '展开'}明细）`}
-      style={{ borderColor: color }}
-    >
+    <div className="pack-node" title={meta.label} style={{ borderColor: meta.color }}>
       <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} id="t-top" />
       <Handle type="target" position={Position.Bottom} style={{ opacity: 0 }} id="t-bot" />
       <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
       <Handle type="source" position={Position.Top} style={{ opacity: 0 }} id="s-top" />
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} id="s-bot" />
-      <div className="pack-title" style={{ color }}>
-        {label} {d.expanded ? '▾' : '▸'}
+      <div className="pack-title" style={{ color: meta.color }}>
+        {meta.label}
       </div>
-      {!d.expanded && (
-        <div className="pack-compact">
-          {entries.map((e) => (
-            <span key={e.key} className="pack-tiny">
-              <span className="pack-tiny-char" style={{ color: e.meta.color }}>
-                {e.meta.label}
-              </span>
-              <span className="pack-tiny-num">{e.amount}</span>
+      <div className="pack-compact">
+        {entries.map((e) => (
+          <span key={e.key} className="pack-tiny">
+            <span className="pack-tiny-char" style={{ color: e.meta.color }}>
+              {e.meta.label}
             </span>
-          ))}
-        </div>
-      )}
+            <span className="pack-tiny-num">{e.amount}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

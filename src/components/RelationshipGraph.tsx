@@ -21,7 +21,6 @@ import { EquipmentNode } from './nodes/EquipmentNode';
 import { QuestNode } from './nodes/QuestNode';
 import { ShipNode } from './nodes/ShipNode';
 import { PackNode } from './nodes/PackNode';
-import { ResourceNode } from './nodes/ResourceNode';
 import { AggregateNode } from './nodes/AggregateNode';
 import { LabeledEdge } from './edges/LabeledEdge';
 
@@ -30,7 +29,6 @@ const nodeTypes = {
   quest: QuestNode,
   ship: ShipNode,
   pack: PackNode,
-  resource: ResourceNode,
   aggregate: AggregateNode,
 };
 
@@ -53,7 +51,7 @@ const EDGE_PRIORITY: Record<EdgeKind, number> = {
   QUEST_REWARD_EQUIP: 3,
   IMPROVE_PACK: 4,
   EVOLVE_PACK: 5,
-  PACK_RESOURCE: 6,
+  DEVELOP_PACK: 6,
   QUEST_REWARD_RESOURCE: 7,
   QUEST_CONSUME_RESOURCE: 8,
   DISMANTLE: 9,
@@ -125,16 +123,14 @@ function styleEdges(edges: GraphEdge[]): GraphEdge[] {
 
 export function RelationshipGraph() {
   const selectedId = useStore((s) => s.selectedEquipId);
-  const expandedPacks = useStore((s) => s.expandedPacks);
   const expandedNodes = useStore((s) => s.expandedNodes);
   const expandedAggregates = useStore((s) => s.expandedAggregates);
-  const togglePack = useStore((s) => s.togglePack);
   const selectEquipment = useStore((s) => s.selectEquipment);
 
   const built = useMemo(() => {
     if (selectedId == null) return { nodes: [] as GraphNode[], edges: [] as GraphEdge[] };
-    return buildEquipmentTree(selectedId, expandedPacks, expandedNodes, expandedAggregates);
-  }, [selectedId, expandedPacks, expandedNodes, expandedAggregates]);
+    return buildEquipmentTree(selectedId, expandedNodes, expandedAggregates);
+  }, [selectedId, expandedNodes, expandedAggregates]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -153,16 +149,6 @@ export function RelationshipGraph() {
     return () => window.clearTimeout(t);
   }, [built]);
 
-  const onNodeClick: NodeMouseHandler = useCallback(
-    (_, node) => {
-      const d = node.data as GraphNodeData;
-      if (d.kind === 'pack') {
-        togglePack(node.id);
-      }
-    },
-    [togglePack],
-  );
-
   const onNodeDoubleClick: NodeMouseHandler = useCallback(
     (_, node) => {
       const d = node.data as GraphNodeData;
@@ -178,7 +164,7 @@ export function RelationshipGraph() {
   }, []);
 
   const counts = useMemo(() => {
-    const c = { equipment: 0, quest: 0, ship: 0, pack: 0, resource: 0 };
+    const c = { equipment: 0, quest: 0, ship: 0, pack: 0 };
     for (const n of built.nodes) c[n.data.kind as keyof typeof c]++;
     return c;
   }, [built]);
@@ -193,7 +179,6 @@ export function RelationshipGraph() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         onInit={(inst) => (instanceRef.current = inst)}
         nodeTypes={nodeTypes}
@@ -216,7 +201,7 @@ export function RelationshipGraph() {
 
       <div className="graph-overlay">
         中心：{center?.name ?? `#${selectedId}`}
-        {center && ` · ${getTypeName(center.typeId)}`} · 装备 {counts.equipment} · 任务 {counts.quest} · 舰船 {counts.ship} · 素材包 {counts.pack} · 资源 {counts.resource}
+        {center && ` · ${getTypeName(center.typeId)}`} · 装备 {counts.equipment} · 任务 {counts.quest} · 舰船 {counts.ship} · 素材包 {counts.pack}
       </div>
 
       <div className="graph-legend">
@@ -234,7 +219,11 @@ export function RelationshipGraph() {
         </div>
         <div className="legend-row">
           <span className="swatch" style={{ background: '#90a4ae' }}></span>
-          <span>素材包</span>
+          <span>改修素材</span>
+        </div>
+        <div className="legend-row">
+          <span className="swatch" style={{ background: '#8d6e63' }}></span>
+          <span>开发</span>
         </div>
         <div className="legend-row">
           <span className="swatch" style={{ background: '#42a5f5' }}></span>

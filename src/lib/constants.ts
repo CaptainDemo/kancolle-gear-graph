@@ -94,7 +94,7 @@ export type EdgeKind =
   | 'QUEST_REQUIRE_EQUIP' // 装备 → 任务（任务要求持有/装备此装备）
   | 'IMPROVE_PACK' // 改修素材包 → 装备
   | 'EVOLVE_PACK' // 进化素材包 → 装备
-  | 'PACK_RESOURCE' // 资源叶子 → 素材包
+  | 'DEVELOP_PACK' // 开发理论值包 → 装备
   | 'QUEST_REWARD_RESOURCE' // 任务 → 资源（任务奖励资源）
   | 'QUEST_CONSUME_RESOURCE' // 资源 → 任务（任务消耗资源）
   | 'DISMANTLE' // 装备 → 资源（拆解产出）
@@ -116,7 +116,7 @@ export const EDGE_STYLES: Record<EdgeKind, EdgeStyle> = {
   QUEST_REQUIRE_EQUIP: { color: '#ffa726', label: '装备' },
   IMPROVE_PACK: { color: '#90a4ae', label: '改修素材' },
   EVOLVE_PACK: { color: '#78909c', label: '进化素材' },
-  PACK_RESOURCE: { color: '#607d8b', label: '', dashed: true },
+  DEVELOP_PACK: { color: '#8d6e63', label: '开发' },
   QUEST_REWARD_RESOURCE: { color: '#26a69a', label: '奖励' },
   QUEST_CONSUME_RESOURCE: { color: '#ab47bc', label: '消耗' },
   DISMANTLE: { color: '#616161', label: '拆解', dashed: true },

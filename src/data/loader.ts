@@ -2,6 +2,7 @@ import apiStart2 from '../../data/api_start2.json';
 import improveData from '../../data/improve_data.json';
 import questsBundle from '../../data/quests.bundle.json';
 import shipsData from '../../data/ships.json';
+import developableIds from '../../data/developable.json';
 
 import type { Equipment, EquipmentStats, RawSlotItem, RawEquipType } from '../types/equipment';
 import type { Quest, RawQuest } from '../types/quest';
@@ -187,6 +188,24 @@ const improvementPlansMap = new Map<number, ImprovementPlan[]>();
 
 // 改修素材包（取 plan 0：数据上各方案改修消耗完全相同，已验证）
 const improveResourcePackMap = new Map<number, ResourcePack>();
+
+// 开发理论值包：废弃资源 × 10（社区公式「開発理論値」）
+// 仅对可开发装备（TeamFleet items.nedb craftable=true）构建；投入资源每种最低 10
+const developableSet = new Set<number>(developableIds as unknown as number[]);
+const developResourcePackMap = new Map<number, ResourcePack>();
+for (const equipId of developableSet) {
+  const eq = equipmentMap.get(equipId);
+  if (!eq) continue;
+  const [fuel, ammo, steel, bauxite] = eq.broken;
+  developResourcePackMap.set(equipId, {
+    fuel: Math.max(fuel * 10, 10),
+    ammo: Math.max(ammo * 10, 10),
+    steel: Math.max(steel * 10, 10),
+    bauxite: Math.max(bauxite * 10, 10),
+    screw: 0,
+    devmat: 0,
+  });
+}
 
 // 进化素材包：外层 key = equipId，内层 key = planIndex
 const evolveResourcePackMap = new Map<number, Map<number, ResourcePack>>();
@@ -445,6 +464,9 @@ export const getImproveResourcePack = (equipId: number): ResourcePack | undefine
 export const getEvolveResourcePacksByPlan = (
   equipId: number,
 ): Map<number, ResourcePack> => evolveResourcePackMap.get(equipId) ?? new Map();
+// 开发理论值包（废弃资源 × 10）
+export const getDevelopResourcePack = (equipId: number): ResourcePack | undefined =>
+  developResourcePackMap.get(equipId);
 
 // 任务奖励装备
 export const getQuestsRewardingEquipment = (equipId: number): number[] =>

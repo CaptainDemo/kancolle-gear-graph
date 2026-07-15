@@ -15,7 +15,6 @@ interface AppState {
   improvableOnly: boolean;
 
   selectedEquipId: number | null;
-  expandedPacks: Set<string>;
   expandedNodes: Map<string, ExpandedState>;
   expandedAggregates: Set<string>;
 
@@ -29,7 +28,6 @@ interface AppState {
   setImprovableOnly: (b: boolean) => void;
 
   selectEquipment: (id: number | null) => void;
-  togglePack: (packInstanceId: string) => void;
   toggleNodeSide: (instanceId: string, side: 'left' | 'right') => void;
   toggleAggregate: (aggregateInstanceId: string) => void;
 
@@ -44,7 +42,6 @@ export const useStore = create<AppState>((set) => ({
   improvableOnly: false,
 
   selectedEquipId: null,
-  expandedPacks: new Set(),
   expandedNodes: new Map(),
   expandedAggregates: new Set(),
 
@@ -66,20 +63,11 @@ export const useStore = create<AppState>((set) => ({
   selectEquipment: (id) =>
     set({
       selectedEquipId: id,
-      expandedPacks: new Set(),
       expandedNodes: id != null
         ? new Map([[`eq-${id}-c`, { left: true, right: true }]])
         : new Map(),
       expandedAggregates: new Set(),
       rightPanelOpen: id != null,
-    }),
-
-  togglePack: (packInstanceId) =>
-    set((state) => {
-      const next = new Set(state.expandedPacks);
-      if (next.has(packInstanceId)) next.delete(packInstanceId);
-      else next.add(packInstanceId);
-      return { expandedPacks: next };
     }),
 
   toggleNodeSide: (instanceId, side) =>

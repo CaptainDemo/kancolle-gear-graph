@@ -1,16 +1,14 @@
 import type { Node } from '@xyflow/react';
 
-import type { GraphNode, GraphNodeData, ResourceNodeData } from './graph';
+import type { GraphNode, GraphNodeData } from './graph';
 
 const INNER_GAP = 110;
-const MID_GAP = 60;
 const NODE_GAP = 12;
 
 const NODE_SIZES: Record<string, { w: number; h: number }> = {
   equipment: { w: 180, h: 44 },
   quest: { w: 180, h: 56 },
   pack: { w: 230, h: 70 },
-  resource: { w: 60, h: 56 },
   aggregate: { w: 130, h: 36 },
 };
 
@@ -251,36 +249,6 @@ export function layoutBidirectional(nodes: GraphNode[]): Node[] {
   const rightTotal = subtreeHeight(centerNode.id, 'right');
   const totalH = Math.max(leftTotal, rightTotal, 400);
   layoutNode(centerNode.id, -centerW / 2, -totalH / 2, totalH / 2);
-
-  // 资源叶子
-  const resourcesByPack = new Map<string, GraphNode[]>();
-  for (const n of nodes) {
-    const d = n.data as GraphNodeData;
-    if (d.kind === 'resource') {
-      const pid = (d as ResourceNodeData).parentInstanceId!;
-      if (!resourcesByPack.has(pid)) resourcesByPack.set(pid, []);
-      resourcesByPack.get(pid)!.push(n);
-    }
-  }
-
-  for (const [packNid, resNodes] of resourcesByPack) {
-    const packPos = positioned.get(packNid);
-    if (!packPos) continue;
-    const pack = allMap.get(packNid)!;
-    const packKind = (pack.data as GraphNodeData).kind;
-    const resW = sizeOf('resource').w;
-    const resXLeft = packPos.x - MID_GAP - resW;
-
-    const resTotalH =
-      resNodes.reduce((sum, n) => sum + sizeOf((n.data as GraphNodeData).kind).h + NODE_GAP, 0) -
-      NODE_GAP;
-    let ry = packPos.y + sizeOf(packKind).h / 2 - resTotalH / 2;
-    for (const r of resNodes) {
-      const rh = sizeOf('resource').h;
-      positioned.set(r.id, { x: resXLeft, y: ry });
-      ry += rh + NODE_GAP;
-    }
-  }
 
   for (const n of nodes) {
     if (!positioned.has(n.id)) {
