@@ -16,6 +16,8 @@ import {
   getQuestsRewardingEquipment,
   getQuestsScrappingEquipment,
   getSelfConsume,
+  getShip,
+  getShipsEquippingEquipment,
 } from './loader';
 import type { ResourcePack } from '../types/improvement';
 import type { EdgeKind, ResourceKey } from '../lib/constants';
@@ -57,6 +59,13 @@ export interface QuestNodeData extends BaseNodeData {
   category: number;
 }
 
+export interface ShipNodeData extends BaseNodeData {
+  kind: 'ship';
+  label: string;
+  shipId: number;
+  stype: number;
+}
+
 export interface PackNodeData extends BaseNodeData {
   kind: 'pack';
   packKind: 'improve' | 'evolve';
@@ -81,6 +90,7 @@ export interface AggregateNodeData extends BaseNodeData {
 export type GraphNodeData =
   | EquipmentNodeData
   | QuestNodeData
+  | ShipNodeData
   | PackNodeData
   | ResourceNodeData
   | AggregateNodeData;
@@ -110,6 +120,8 @@ const childInstanceId = (equipId: number, side: 'left' | 'right', parentInstance
   `eq-${equipId}-${side[0]}-${parentInstance}`;
 const questInstanceId = (qid: number, side: 'left' | 'right', parentInstance: string) =>
   `q-${qid}-${side[0]}-${parentInstance}`;
+const shipInstanceId = (shipId: number, side: 'left' | 'right', parentInstance: string) =>
+  `s-${shipId}-${side[0]}-${parentInstance}`;
 const packInstanceId = (
   parentInstance: string,
   packKind: 'improve' | 'evolve',
@@ -134,6 +146,7 @@ const FOLD_THRESHOLD = 5;
 interface NeighborEntry {
   equipId?: number;
   questId?: number;
+  shipId?: number;
   kind: EdgeKind;
   label: string;
   amount?: number;
@@ -256,6 +269,33 @@ export function buildEquipmentTree(
     return instanceId;
   };
 
+  const addShip = (
+    shipId: number,
+    parentInstance: string,
+    side: 'left' | 'right',
+    level: number,
+  ): string | null => {
+    const instanceId = shipInstanceId(shipId, side, parentInstance);
+    if (nodes.has(instanceId)) return instanceId;
+    const s = getShip(shipId);
+    if (!s) return null;
+    nodes.set(instanceId, {
+      id: instanceId,
+      type: 'ship',
+      position: { x: 0, y: 0 },
+      data: {
+        kind: 'ship',
+        label: s.fullname,
+        shipId,
+        stype: s.type,
+        parentInstanceId: parentInstance,
+        parentSide: side,
+        level,
+      },
+    });
+    return instanceId;
+  };
+
   const addPack = (
     ownerId: number,
     packKind: 'improve' | 'evolve',
@@ -353,6 +393,9 @@ export function buildEquipmentTree(
     }
     for (const qid of getQuestsRewardingEquipment(equipId)) {
       result.push({ questId: qid, kind: 'QUEST_REWARD_EQUIP', label: '奖励' });
+    }
+    for (const shipId of getShipsEquippingEquipment(equipId)) {
+      result.push({ shipId, kind: 'SHIP_INITIAL_EQUIP', label: '初始' });
     }
     return result;
   }
@@ -461,6 +504,15 @@ export function buildEquipmentTree(
           addEdge(parentInstance, qInst, entry.kind, { label: entry.label, side: 'right' });
         }
       }
+    } else if (entry.shipId != null) {
+      const sInst = addShip(entry.shipId, parentInstance, side, level + 1);
+      if (sInst) {
+        if (side === 'left') {
+          addEdge(sInst, parentInstance, entry.kind, { label: entry.label, side: 'left' });
+        } else {
+          addEdge(parentInstance, sInst, entry.kind, { label: entry.label, side: 'right' });
+        }
+      }
     }
   }
 
@@ -543,7 +595,7 @@ export function buildEquipmentTree(
     path: number[],
   ): void {
     const all = collectLeftNeighbors(equipId).filter((n) => {
-      const id = n.equipId ?? n.questId;
+      const id = n.equipId ?? n.questId ?? n.shipId;
       return id != null && !path.includes(id);
     });
 
@@ -573,7 +625,7 @@ export function buildEquipmentTree(
     path: number[],
   ): void {
     const all = collectRightNeighbors(equipId).filter((n) => {
-      const id = n.equipId ?? n.questId;
+      const id = n.equipId ?? n.questId ?? n.shipId;
       return id != null && !path.includes(id);
     });
 

@@ -19,6 +19,7 @@ import { EDGE_STYLES } from '../lib/constants';
 import type { EdgeKind } from '../lib/constants';
 import { EquipmentNode } from './nodes/EquipmentNode';
 import { QuestNode } from './nodes/QuestNode';
+import { ShipNode } from './nodes/ShipNode';
 import { PackNode } from './nodes/PackNode';
 import { ResourceNode } from './nodes/ResourceNode';
 import { AggregateNode } from './nodes/AggregateNode';
@@ -27,6 +28,7 @@ import { LabeledEdge } from './edges/LabeledEdge';
 const nodeTypes = {
   equipment: EquipmentNode,
   quest: QuestNode,
+  ship: ShipNode,
   pack: PackNode,
   resource: ResourceNode,
   aggregate: AggregateNode,
@@ -58,6 +60,7 @@ const EDGE_PRIORITY: Record<EdgeKind, number> = {
   AGGREGATE: 10,
   QUEST_SCRAP_EQUIP: 11,
   QUEST_REQUIRE_EQUIP: 12,
+  SHIP_INITIAL_EQUIP: 13,
 };
 
 // 多边扇形分配：默认 → 上方 → 下方 → 上上 → 下下（多方案装备可能产生 3+ 平行边）
@@ -175,7 +178,7 @@ export function RelationshipGraph() {
   }, []);
 
   const counts = useMemo(() => {
-    const c = { equipment: 0, quest: 0, pack: 0, resource: 0 };
+    const c = { equipment: 0, quest: 0, ship: 0, pack: 0, resource: 0 };
     for (const n of built.nodes) c[n.data.kind as keyof typeof c]++;
     return c;
   }, [built]);
@@ -213,7 +216,7 @@ export function RelationshipGraph() {
 
       <div className="graph-overlay">
         中心：{center?.name ?? `#${selectedId}`}
-        {center && ` · ${getTypeName(center.typeId)}`} · 装备 {counts.equipment} · 任务 {counts.quest} · 素材包 {counts.pack} · 资源 {counts.resource}
+        {center && ` · ${getTypeName(center.typeId)}`} · 装备 {counts.equipment} · 任务 {counts.quest} · 舰船 {counts.ship} · 素材包 {counts.pack} · 资源 {counts.resource}
       </div>
 
       <div className="graph-legend">
@@ -236,6 +239,10 @@ export function RelationshipGraph() {
         <div className="legend-row">
           <span className="swatch" style={{ background: '#42a5f5' }}></span>
           <span>任务奖励</span>
+        </div>
+        <div className="legend-row">
+          <span className="swatch" style={{ background: '#26c6da' }}></span>
+          <span>舰船初始装备</span>
         </div>
       </div>
     </div>

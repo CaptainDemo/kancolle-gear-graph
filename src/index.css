@@ -624,6 +624,25 @@ a:hover {
   margin-top: 2px;
 }
 
+.ship-node {
+  background: var(--bg-elev);
+  border: 2px solid #26c6da;
+  border-radius: 6px;
+  padding: 6px 8px;
+  width: 180px;
+  box-sizing: border-box;
+  cursor: default;
+}
+.ship-node .sid {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+.ship-node .sname {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
 .material-node {
   background: var(--bg-elev);
   border: 2px solid #90a4ae;

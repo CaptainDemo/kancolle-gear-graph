@@ -1,9 +1,11 @@
 import apiStart2 from '../../data/api_start2.json';
 import improveData from '../../data/improve_data.json';
 import questsBundle from '../../data/quests.bundle.json';
+import shipsData from '../../data/ships.json';
 
 import type { Equipment, EquipmentStats, RawSlotItem, RawEquipType } from '../types/equipment';
 import type { Quest, RawQuest } from '../types/quest';
+import type { Ship } from '../types/ship';
 import type {
   EvolveConsumeRelation,
   ImprovementData,
@@ -98,6 +100,22 @@ for (const key of Object.keys(questsRaw)) {
     prerequisite: q.prerequisite ?? [],
     requirements: q.requirements ?? {},
   });
+}
+
+// 舰船初始装备：shipMap 和 equipToShipsMap（反向索引：装备 → 自带它的舰船）
+const shipMap = new Map<number, Ship>();
+const equipToShipsMap = new Map<number, number[]>();
+const shipsArray = shipsData as unknown as Ship[];
+for (const s of shipsArray) {
+  shipMap.set(s.id, s);
+  const seen = new Set<number>();
+  for (const equipId of s.equip) {
+    if (seen.has(equipId)) continue;
+    seen.add(equipId);
+    const list = equipToShipsMap.get(equipId) ?? [];
+    list.push(s.id);
+    equipToShipsMap.set(equipId, list);
+  }
 }
 
 // ============================================================================
@@ -389,6 +407,11 @@ export const isImprovable = (id: number): boolean => improvementMap.has(id);
 
 export const getQuest = (id: number): Quest | undefined => questMap.get(id);
 export const getAllQuests = (): Quest[] => Array.from(questMap.values());
+
+export const getShip = (id: number): Ship | undefined => shipMap.get(id);
+// 哪些舰船将此装备作为初始装备（装备的 LEFT 邻居）
+export const getShipsEquippingEquipment = (equipId: number): number[] =>
+  equipToShipsMap.get(equipId) ?? [];
 
 // 多方案衍生数据（详情面板用）
 export const getImprovementPlans = (equipId: number): ImprovementPlan[] =>

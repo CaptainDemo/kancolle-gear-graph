@@ -98,6 +98,7 @@ export type EdgeKind =
   | 'QUEST_REWARD_RESOURCE' // 任务 → 资源（任务奖励资源）
   | 'QUEST_CONSUME_RESOURCE' // 资源 → 任务（任务消耗资源）
   | 'DISMANTLE' // 装备 → 资源（拆解产出）
+  | 'SHIP_INITIAL_EQUIP' // 舰船 → 装备（舰娘初始装备）
   | 'AGGREGATE'; // 聚合占位符节点 → 父节点（虚拟边）
 
 export interface EdgeStyle {
@@ -119,6 +120,7 @@ export const EDGE_STYLES: Record<EdgeKind, EdgeStyle> = {
   QUEST_REWARD_RESOURCE: { color: '#26a69a', label: '奖励' },
   QUEST_CONSUME_RESOURCE: { color: '#ab47bc', label: '消耗' },
   DISMANTLE: { color: '#616161', label: '拆解', dashed: true },
+  SHIP_INITIAL_EQUIP: { color: '#26c6da', label: '初始' },
   AGGREGATE: { color: '#475569', label: '更多', dashed: true },
 };
 
